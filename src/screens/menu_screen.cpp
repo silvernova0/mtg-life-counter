@@ -54,7 +54,12 @@ static void screen_gesture_cb(lv_event_t *e) {
 
 static void new_game_btn_cb(lv_event_t *e) {
     (void)e;
+#if defined(BOARD_WAVESHARE_S3)
+    app_state_reset_game(1, DEFAULT_START_LIFE);
+    counter_screen_create();
+#else
     setup_screen_create();
+#endif
     menu_screen_destroy();
 }
 

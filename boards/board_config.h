@@ -1,10 +1,9 @@
 /**
  * board_config.h — per-board pin mapping and capability flags.
  *
- * Exactly one of BOARD_DIYMALLS_C3 / BOARD_MESHNOLOGY_S3 is defined by
- * platformio.ini depending on which environment you build (`-e diymalls_c3`
- * or `-e meshnology_s3`). Nothing else in the codebase should #include a
- * board-specific header directly — always go through this file.
+ * Exactly one BOARD_* target macro is defined by platformio.ini depending
+ * on which environment you build. Nothing else in the codebase should
+ * #include a board-specific header directly — always go through this file.
  */
 
 #pragma once
@@ -22,6 +21,7 @@
     #define BOARD_NAME          "DIYmalls ESP32-C3 (touch)"
     #define BOARD_HAS_TOUCH     1
     #define BOARD_HAS_ENCODER   0
+    #define BOARD_HAS_ENCODER_BUTTON 0
 
     /* Display (GC9A01 over SPI) */
     #define PIN_TFT_MOSI        7
@@ -75,6 +75,7 @@
     #define BOARD_NAME          "Meshnology ESP32-S3"
     #define BOARD_HAS_TOUCH     1
     #define BOARD_HAS_ENCODER   1
+    #define BOARD_HAS_ENCODER_BUTTON 1
 
     /* Power-enable rails for the display circuit (level-shifter/LDO
      * enable, per the factory source code) — MUST be driven HIGH before
@@ -132,6 +133,83 @@
     #define PIN_POWER_LIGHT     40
     /* Unassigned/test I/O broken out on this board: GPIO 4, GPIO 12 */
 
+#elif defined(BOARD_WOKWI_S3)
+
+    #define BOARD_NAME          "Wokwi ESP32-S3"
+    #define BOARD_HAS_TOUCH     0
+    #define BOARD_HAS_ENCODER   1
+    #define BOARD_HAS_ENCODER_BUTTON 1
+
+    /* Simulated ILI9341 over 4-wire SPI, using its native portrait geometry
+     * with LVGL rotated to the 320x240 landscape orientation. */
+    #define PIN_TFT_MOSI        11
+    #define PIN_TFT_SCLK        12
+    #define PIN_TFT_CS          10
+    #define PIN_TFT_DC          9
+    #define PIN_TFT_RST         -1
+    #define PIN_TFT_BL          -1
+
+    #define TFT_SPI_HOST        SPI2_HOST
+    #define TFT_FREQ_WRITE      40000000
+    #define TFT_FREQ_READ       16000000
+    #define TFT_DMA_CHANNEL     SPI_DMA_CH_AUTO
+    #define TFT_MEMORY_WIDTH    240
+    #define TFT_MEMORY_HEIGHT   320
+    #define TFT_DUMMY_READ_PIXEL 8
+    #define TFT_DUMMY_READ_BITS  1
+    #define TFT_BL_PWM_CHANNEL  0
+
+    /* KY-040: CLK=A, DT=B, SW=active-low push button. */
+    #define PIN_ENCODER_A       4
+    #define PIN_ENCODER_B       5
+    #define PIN_ENCODER_BTN     6
+
+    #define DISPLAY_HOR_RES     320
+    #define DISPLAY_VER_RES     240
+    #define DISPLAY_ROTATION    1
+
+#elif defined(BOARD_WAVESHARE_S3)
+
+    #define BOARD_NAME          "Waveshare ESP32-S3 Knob Touch LCD 1.8"
+    #define BOARD_HAS_TOUCH     1
+    #define BOARD_HAS_ENCODER   1
+    #define BOARD_HAS_ENCODER_BUTTON 0
+
+    /* Display (ST77916 over QSPI), per Waveshare's board configuration. */
+    #define PIN_TFT_SCLK        13
+    #define PIN_TFT_IO0         15
+    #define PIN_TFT_IO1         16
+    #define PIN_TFT_IO2         17
+    #define PIN_TFT_IO3         18
+    #define PIN_TFT_CS          14
+    #define PIN_TFT_RST         21
+    #define PIN_TFT_BL          47
+
+    #define TFT_SPI_HOST        SPI2_HOST
+    #define TFT_FREQ_WRITE     40000000
+    #define TFT_FREQ_READ      16000000
+    #define TFT_DMA_CHANNEL    SPI_DMA_CH_AUTO
+    #define TFT_MEMORY_WIDTH   360
+    #define TFT_MEMORY_HEIGHT  360
+    #define TFT_DUMMY_READ_PIXEL 8
+    #define TFT_DUMMY_READ_BITS  1
+    #define TFT_BL_PWM_CHANNEL  0
+
+    /* Touch (CST816S over I2C). */
+    #define PIN_TOUCH_SDA       11
+    #define PIN_TOUCH_SCL       12
+    #define PIN_TOUCH_INT       9
+    #define PIN_TOUCH_RST       10
+    #define TOUCH_I2C_ADDR      0x15
+
+    /* Rotary encoder; this board's encoder has no push-switch contact. */
+    #define PIN_ENCODER_A       8
+    #define PIN_ENCODER_B       7
+
+    #define DISPLAY_HOR_RES     360
+    #define DISPLAY_VER_RES     360
+    #define DISPLAY_ROTATION    0
+
 #else
-    #error "No board selected. Build with -e diymalls_c3 or -e meshnology_s3"
+    #error "No board selected. Choose a supported PlatformIO environment."
 #endif

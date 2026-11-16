@@ -4,16 +4,16 @@
  *
  * ESP-NOW (not classic Bluetooth/BLE) is what actually carries this: it's
  * Espressif's own low-latency broadcast/unicast protocol that rides on
- * the WiFi radio both boards already have, and needs no pairing screen or
- * GATT server/client setup — a device just sends a packet to a MAC
+ * the WiFi radio supported boards already have, and needs no pairing
+ * screen or GATT server/client setup — a device just sends a packet to a MAC
  * address (or the broadcast address) and whoever's listening gets it.
  * That's a much better fit for "a few ESP32s on the same table" than
  * real Bluetooth would be, at the cost of not being controllable from a
  * phone (a future phone companion would need actual BLE or WiFi+a
  * server, which is a different project).
  *
- * The Meshnology board is Xtensa (S3) and the DIYmalls board is RISC-V
- * (C3) — different architectures compiling this same header. Struct
+ * The Meshnology and Waveshare boards are Xtensa (S3), and the DIYmalls
+ * board is RISC-V (C3) — different architectures compiling this same header. Struct
  * layout/padding rules aren't guaranteed identical across them, so every
  * wire struct here is explicitly `packed` and built only from
  * fixed-width stdint types. Never send a raw, unpacked C++ struct

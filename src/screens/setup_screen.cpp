@@ -12,7 +12,12 @@ static lv_obj_t *s_life_label = nullptr;
 static lv_obj_t *s_count_field_box = nullptr;
 static lv_obj_t *s_life_field_box = nullptr;
 
-static uint8_t s_pending_count = 2;
+static uint8_t s_pending_count =
+#if defined(BOARD_WAVESHARE_S3)
+    1;
+#else
+    2;
+#endif
 static int16_t s_pending_life = DEFAULT_START_LIFE;
 
 #if BOARD_HAS_ENCODER
@@ -22,16 +27,22 @@ static uint8_t s_focused_field = 0; /* 0 = player count, 1 = starting life */
 static void refresh_labels() {
     if (!s_screen) return;
     char buf[8];
+#if !defined(BOARD_WAVESHARE_S3)
     snprintf(buf, sizeof(buf), "%d", s_pending_count);
     lv_label_set_text(s_count_label, buf);
+#endif
     snprintf(buf, sizeof(buf), "%d", s_pending_life);
     lv_label_set_text(s_life_label, buf);
 
 #if BOARD_HAS_ENCODER
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_border_width(s_life_field_box, 0, 0);
+#else
     lv_obj_set_style_border_width(s_count_field_box, s_focused_field == 0 ? 2 : 0, 0);
     lv_obj_set_style_border_color(s_count_field_box, THEME_SELECTED_RING, 0);
     lv_obj_set_style_border_width(s_life_field_box, s_focused_field == 1 ? 2 : 0, 0);
     lv_obj_set_style_border_color(s_life_field_box, THEME_SELECTED_RING, 0);
+#endif
 #endif
 }
 
@@ -45,6 +56,7 @@ static void start_game() {
     setup_screen_destroy();
 }
 
+#if !defined(BOARD_WAVESHARE_S3)
 static void count_minus_cb(lv_event_t *e) {
     (void)e;
     if (s_pending_count > 1) s_pending_count--;
@@ -55,6 +67,7 @@ static void count_plus_cb(lv_event_t *e) {
     if (s_pending_count < MAX_PLAYERS) s_pending_count++;
     refresh_labels();
 }
+#endif
 static void life_minus_cb(lv_event_t *e) {
     (void)e;
     if (s_pending_life > 5) s_pending_life -= 5;
@@ -75,7 +88,11 @@ static lv_obj_t *build_stepper_row(lv_obj_t *parent, const char *title, int16_t 
                                     lv_event_cb_t minus_cb, lv_event_cb_t plus_cb) {
     lv_obj_t *box = lv_obj_create(parent);
     lv_obj_remove_style_all(box);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_size(box, 300, 112);
+#else
     lv_obj_set_size(box, 190, 46);
+#endif
     lv_obj_align(box, LV_ALIGN_CENTER, 0, y_off);
     lv_obj_set_style_radius(box, 8, 0);
     lv_obj_clear_flag(box, LV_OBJ_FLAG_SCROLLABLE);
@@ -84,34 +101,67 @@ static lv_obj_t *build_stepper_row(lv_obj_t *parent, const char *title, int16_t 
     lv_obj_t *title_lbl = lv_label_create(box);
     lv_label_set_text(title_lbl, title);
     lv_obj_set_style_text_color(title_lbl, theme_accent(), 0);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_text_font(title_lbl, &lv_font_montserrat_24, 0);
+    lv_obj_align(title_lbl, LV_ALIGN_TOP_MID, 0, 4);
+#else
     lv_obj_set_style_text_font(title_lbl, &lv_font_montserrat_12, 0);
     lv_obj_align(title_lbl, LV_ALIGN_TOP_MID, 0, -4);
+#endif
 
     lv_obj_t *minus_btn = lv_btn_create(box);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_size(minus_btn, 72, 72);
+    lv_obj_align(minus_btn, LV_ALIGN_LEFT_MID, 0, 16);
+#else
     lv_obj_set_size(minus_btn, 34, 28);
     lv_obj_align(minus_btn, LV_ALIGN_LEFT_MID, 0, 6);
+#endif
     lv_obj_set_style_bg_color(minus_btn, THEME_BTN_MINUS, 0);
     lv_obj_add_event_cb(minus_btn, minus_cb, LV_EVENT_CLICKED, nullptr);
     lv_obj_t *minus_lbl = lv_label_create(minus_btn);
     lv_label_set_text(minus_lbl, "-");
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_text_font(minus_lbl, &lv_font_montserrat_48, 0);
+#else
     lv_obj_set_style_text_font(minus_lbl, &lv_font_montserrat_16, 0);
+#endif
     lv_obj_center(minus_lbl);
 
     lv_obj_t *value_lbl = lv_label_create(box);
     lv_label_set_text(value_lbl, "--");
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_text_font(value_lbl, &lv_font_montserrat_48, 0);
+#else
     lv_obj_set_style_text_font(value_lbl, &lv_font_montserrat_24, 0);
+#endif
     lv_obj_set_style_text_color(value_lbl, THEME_LIFE_TEXT, 0);
-    lv_obj_align(value_lbl, LV_ALIGN_CENTER, 0, 6);
+    lv_obj_align(value_lbl, LV_ALIGN_CENTER, 0,
+#if defined(BOARD_WAVESHARE_S3)
+                 16
+#else
+                 6
+#endif
+    );
     *out_value_label = value_lbl;
 
     lv_obj_t *plus_btn = lv_btn_create(box);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_size(plus_btn, 72, 72);
+    lv_obj_align(plus_btn, LV_ALIGN_RIGHT_MID, 0, 16);
+#else
     lv_obj_set_size(plus_btn, 34, 28);
     lv_obj_align(plus_btn, LV_ALIGN_RIGHT_MID, 0, 6);
+#endif
     lv_obj_set_style_bg_color(plus_btn, THEME_BTN_PLUS, 0);
     lv_obj_add_event_cb(plus_btn, plus_cb, LV_EVENT_CLICKED, nullptr);
     lv_obj_t *plus_lbl = lv_label_create(plus_btn);
     lv_label_set_text(plus_lbl, "+");
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_text_font(plus_lbl, &lv_font_montserrat_48, 0);
+#else
     lv_obj_set_style_text_font(plus_lbl, &lv_font_montserrat_16, 0);
+#endif
     lv_obj_center(plus_lbl);
 
     return box;
@@ -123,6 +173,11 @@ static void encoder_handler(input_encoder_event_t evt, int16_t data) {
     if (!s_screen) return; /* belt-and-suspenders: see setup_screen_destroy() */
     switch (evt) {
         case INPUT_ENC_TURN:
+#if defined(BOARD_WAVESHARE_S3)
+            s_pending_life += data * 5;
+            if (s_pending_life < 5) s_pending_life = 5;
+            if (s_pending_life > 999) s_pending_life = 999;
+#else
             if (s_focused_field == 0) {
                 int16_t v = s_pending_count + data;
                 if (v < 1) v = 1;
@@ -134,6 +189,7 @@ static void encoder_handler(input_encoder_event_t evt, int16_t data) {
                 if (v > 999) v = 999;
                 s_pending_life = v;
             }
+#endif
             refresh_labels();
             break;
         case INPUT_ENC_CLICK:
@@ -155,19 +211,39 @@ void setup_screen_create() {
     lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
 
     lv_obj_t *title = lv_label_create(s_screen);
+    lv_obj_set_style_text_color(title, theme_accent(), 0);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_label_set_text(title, "ONE PLAYER");
+    lv_obj_set_style_text_font(title, &lv_font_montserrat_32, 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 12);
+#else
     lv_label_set_text(title, "MTG Life Counter");
     lv_obj_set_style_text_color(title, theme_accent(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 34);
+#endif
 
+#if !defined(BOARD_WAVESHARE_S3)
     build_stepper_row(s_screen, "PLAYERS", -20, &s_count_label, &s_count_field_box,
                        count_minus_cb, count_plus_cb);
-    build_stepper_row(s_screen, "STARTING LIFE", 40, &s_life_label, &s_life_field_box,
+#endif
+    build_stepper_row(s_screen, "STARTING LIFE",
+#if defined(BOARD_WAVESHARE_S3)
+                       112,
+#else
+                       0,
+#endif
+                       &s_life_label, &s_life_field_box,
                        life_minus_cb, life_plus_cb);
 
     lv_obj_t *start_btn = lv_btn_create(s_screen);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_size(start_btn, 240, 64);
+    lv_obj_align(start_btn, LV_ALIGN_BOTTOM_MID, 0, -34);
+#else
     lv_obj_set_size(start_btn, 120, 34);
     lv_obj_align(start_btn, LV_ALIGN_BOTTOM_MID, 0, -30);
+#endif
     lv_obj_set_style_bg_color(start_btn, theme_accent(), 0);
     lv_obj_add_event_cb(start_btn, start_btn_cb, LV_EVENT_CLICKED, nullptr);
     lv_obj_t *start_lbl = lv_label_create(start_btn);
@@ -175,11 +251,19 @@ void setup_screen_create() {
     lv_obj_set_style_text_color(start_lbl, lv_color_hex(0x101014), 0);
     /* Explicit font — without this it inherits LV_FONT_DEFAULT (32px),
      * which barely fits inside a 120x34 button. */
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_text_font(start_lbl, &lv_font_montserrat_24, 0);
+#else
     lv_obj_set_style_text_font(start_lbl, &lv_font_montserrat_16, 0);
+#endif
     lv_obj_center(start_lbl);
 
 #if BOARD_HAS_ENCODER
+#if defined(BOARD_WAVESHARE_S3)
+    s_focused_field = 1;
+#else
     s_focused_field = 0;
+#endif
     input_driver_set_encoder_handler(encoder_handler);
 #endif
 

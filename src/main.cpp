@@ -1,6 +1,6 @@
 /**
  * main.cpp — entry point. Brings up the display + input drivers, LVGL,
- * app state, and shows the setup screen.
+ * app state, and shows the initial screen.
  */
 
 #include <Arduino.h>
@@ -10,6 +10,7 @@
 #include "app_state.h"
 #include "led_driver.h"
 #include "net/table_sync.h"
+#include "screens/counter_screen.h"
 #include "screens/setup_screen.h"
 #include "board_config.h"
 
@@ -18,6 +19,13 @@ static uint32_t s_last_heartbeat_ms = 0;
 
 void setup() {
     Serial.begin(115200);
+#if ARDUINO_USB_MODE && ARDUINO_USB_CDC_ON_BOOT
+    /* Native USB CDC: when the board is plugged into a PC but no serial
+     * monitor has the port open, the TX buffer fills and every print then
+     * blocks for the default timeout (~100 ms). That stalls loop() and
+     * made the knob lag badly. Never block on logging. */
+    Serial.setTxTimeoutMs(0);
+#endif
     /* Native-USB boards (no separate USB-serial chip) need a beat for the
      * host OS to enumerate the CDC port and for you to get the monitor
      * open — without this, early prints are dropped on the floor before
@@ -51,7 +59,11 @@ void setup() {
     randomSeed(esp_random());
 
     Serial.println("[boot] app_state_reset_game()...");
+#if defined(BOARD_WAVESHARE_S3)
+    app_state_reset_game(1, DEFAULT_START_LIFE);
+#else
     app_state_reset_game(2, DEFAULT_START_LIFE);
+#endif
 
     /* One-time default LED turn-color assignment (Red/Blue/Green/Purple
      * for P1-P4) — g_game is zero-initialized, which would otherwise
@@ -63,8 +75,13 @@ void setup() {
         g_game.player_led_color_idx[i] = i;
     }
 
+#if defined(BOARD_WAVESHARE_S3)
+    Serial.println("[boot] counter_screen_create()...");
+    counter_screen_create();
+#else
     Serial.println("[boot] setup_screen_create()...");
     setup_screen_create();
+#endif
 
     Serial.println("[boot] setup() complete, entering loop()");
 }

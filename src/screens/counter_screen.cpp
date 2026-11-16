@@ -7,6 +7,7 @@
 #include "../input_driver.h"
 #include "../led_driver.h"
 #include "board_config.h"
+#include <Arduino.h>
 #include <stdio.h>
 
 typedef struct { int16_t dx, dy; } player_pos_t;
@@ -45,7 +46,11 @@ static void update_container_style(uint8_t i) {
         eliminated ? THEME_DANGER : THEME_LIFE_TEXT, 0);
 
 #if BOARD_HAS_ENCODER
+#if defined(BOARD_WAVESHARE_S3)
+    bool selected = (g_game.player_count > 1 && i == g_game.selected_player);
+#else
     bool selected = (i == g_game.selected_player);
+#endif
     lv_obj_set_style_border_width(s_containers[i], selected ? 2 : 0, 0);
     lv_obj_set_style_border_color(s_containers[i], THEME_SELECTED_RING, 0);
 #endif
@@ -83,23 +88,46 @@ void counter_screen_refresh() {
     }
 }
 
+#if !defined(BOARD_WAVESHARE_S3)
 static void plus_btn_cb(lv_event_t *e) {
     uint8_t idx = (uint8_t)(uintptr_t)lv_event_get_user_data(e);
+#if BOARD_HAS_ENCODER
+    g_game.selected_player = idx;
+#endif
     app_state_adjust_life(idx, +1);
     counter_screen_refresh();
+#if BOARD_HAS_ENCODER
+    led_driver_refresh();
+#endif
 }
 
 static void minus_btn_cb(lv_event_t *e) {
     uint8_t idx = (uint8_t)(uintptr_t)lv_event_get_user_data(e);
+#if BOARD_HAS_ENCODER
+    g_game.selected_player = idx;
+#endif
     app_state_adjust_life(idx, -1);
     counter_screen_refresh();
+#if BOARD_HAS_ENCODER
+    led_driver_refresh();
+#endif
 }
+#endif
+
+#if BOARD_HAS_ENCODER
+static void player_select_cb(lv_event_t *e) {
+    uint8_t idx = (uint8_t)(uintptr_t)lv_event_get_user_data(e);
+    if (idx >= g_game.player_count || idx == g_game.selected_player) return;
+    g_game.selected_player = idx;
+    counter_screen_refresh();
+    led_driver_refresh();
+}
+#endif
 
 static void player_long_press_cb(lv_event_t *e) {
     uint8_t idx = (uint8_t)(uintptr_t)lv_event_get_user_data(e);
     /* Opens the poison/energy/commander-damage detail view for this
-     * player. Touch-only gesture (both boards have touch), so it works
-     * the same on the rotary board too. */
+     * player. This touch gesture works on every supported board. */
     player_detail_overlay_open(idx);
 }
 
@@ -122,9 +150,21 @@ static void build_player_widget(uint8_t idx) {
 
     lv_obj_t *cont = lv_obj_create(s_screen);
     lv_obj_remove_style_all(cont);
+#if defined(BOARD_WAVESHARE_S3)
+    if (g_game.player_count == 1) {
+        lv_obj_set_size(cont, 340, 340);
+    } else {
+        lv_obj_set_size(cont, 96, 72);
+    }
+#else
     lv_obj_set_size(cont, 96, 72);
+#endif
     lv_obj_align(cont, LV_ALIGN_CENTER, pos.dx, pos.dy);
+#if defined(BOARD_WAVESHARE_S3)
+    lv_obj_set_style_radius(cont, g_game.player_count == 1 ? LV_RADIUS_CIRCLE : 8, 0);
+#else
     lv_obj_set_style_radius(cont, 8, 0);
+#endif
     lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
     /* A swipe that starts on a player box (not just empty background)
      * should still reach the screen's own gesture handler and open the
@@ -135,18 +175,60 @@ static void build_player_widget(uint8_t idx) {
 
     lv_obj_t *label = lv_label_create(cont);
     lv_label_set_text(label, "--");
+#if defined(BOARD_WAVESHARE_S3)
+    if (g_game.player_count == 1) {
+        lv_obj_set_style_text_font(label, &lv_font_montserrat_48, 0);
+        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    } else {
+        lv_obj_set_style_text_font(label, LIFE_FONTS[g_game.player_count - 1], 0);
+        lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
+    }
+#else
     lv_obj_set_style_text_font(label, LIFE_FONTS[g_game.player_count - 1], 0);
-    lv_obj_set_style_text_color(label, THEME_LIFE_TEXT, 0);
     lv_obj_align(label, LV_ALIGN_TOP_MID, 0, 0);
+#endif
+    lv_obj_set_style_text_color(label, THEME_LIFE_TEXT, 0);
+#if BOARD_HAS_ENCODER
+    lv_obj_add_flag(label, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(label, player_select_cb, LV_EVENT_CLICKED, (void *)(uintptr_t)idx);
+    lv_obj_add_event_cb(label, player_long_press_cb, LV_EVENT_LONG_PRESSED, (void *)(uintptr_t)idx);
+#endif
     s_life_labels[idx] = label;
 
     lv_obj_t *status = lv_label_create(cont);
     lv_label_set_text(status, "");
     lv_obj_set_style_text_color(status, theme_accent(), 0);
+#if defined(BOARD_WAVESHARE_S3)
+    if (g_game.player_count == 1) {
+        lv_obj_set_style_text_font(status, &lv_font_montserrat_16, 0);
+        lv_obj_align(status, LV_ALIGN_TOP_MID, 0, 62);
+    } else {
+        lv_obj_set_style_text_font(status, &lv_font_montserrat_12, 0);
+        lv_obj_align(status, LV_ALIGN_TOP_RIGHT, 2, -4);
+    }
+#else
     lv_obj_set_style_text_font(status, &lv_font_montserrat_12, 0);
     lv_obj_align(status, LV_ALIGN_TOP_RIGHT, 2, -4);
+#endif
     s_status_labels[idx] = status;
 
+#if defined(BOARD_WAVESHARE_S3)
+    if (g_game.player_count == 1) {
+        lv_obj_t *title = lv_label_create(cont);
+        lv_label_set_text(title, "LIFE");
+        lv_obj_set_style_text_font(title, &lv_font_montserrat_16, 0);
+        lv_obj_set_style_text_color(title, theme_accent(), 0);
+        lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 38);
+
+        lv_obj_t *hint = lv_label_create(cont);
+        lv_label_set_text(hint, "SWIPE LEFT FOR MENU");
+        lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, 0);
+        lv_obj_set_style_text_color(hint, theme_accent(), 0);
+        lv_obj_align(hint, LV_ALIGN_BOTTOM_MID, 0, -28);
+    }
+#endif
+
+#if !defined(BOARD_WAVESHARE_S3)
     lv_obj_t *minus_btn = lv_btn_create(cont);
     lv_obj_set_size(minus_btn, 34, 26);
     lv_obj_align(minus_btn, LV_ALIGN_BOTTOM_LEFT, 4, 0);
@@ -166,6 +248,7 @@ static void build_player_widget(uint8_t idx) {
     lv_label_set_text(plus_lbl, "+");
     lv_obj_set_style_text_font(plus_lbl, &lv_font_montserrat_16, 0);
     lv_obj_center(plus_lbl);
+#endif
 }
 
 #if BOARD_HAS_ENCODER
@@ -224,6 +307,8 @@ void counter_screen_create() {
 
 #if BOARD_HAS_ENCODER
     input_driver_set_encoder_handler(encoder_handler);
+    Serial.printf("[counter] encoder handler registered; players=%u life=%d\n",
+                  g_game.player_count, g_game.players[0].life);
 #endif
 
     counter_screen_refresh();

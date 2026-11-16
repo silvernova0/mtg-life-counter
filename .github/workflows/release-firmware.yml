@@ -1,12 +1,11 @@
 name: Release firmware
 
-# Builds both boards' firmware, merges each into one flashable .bin (the
-# format ESP Web Tools / esptool's web flasher expects — bootloader +
-# partition table + boot_app0 + app all in one image at offset 0), and
+# Builds firmware for all supported boards and merges each into one
+# flashable .bin (bootloader + partition table + boot_app0 + app all in one
+# image at offset 0), and
 # attaches them to the GitHub Release for the pushed tag. The web flasher
 # in docs/ always downloads these two exact filenames from the *latest*
-# release, so re-running this on a new tag is all that's needed to update
-# it — no manifest changes required.
+# release. The web flasher currently uses the two original board images.
 
 on:
   push:
@@ -29,6 +28,9 @@ jobs:
           - env: diymalls_c3
             chip: esp32c3
             asset_name: mtg-life-counter-diymalls_c3.bin
+          - env: waveshare_s3
+            chip: esp32s3
+            asset_name: mtg-life-counter-waveshare_s3.bin
 
     steps:
       - name: Check out repo

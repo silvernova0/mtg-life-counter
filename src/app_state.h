@@ -1,7 +1,7 @@
 /**
  * app_state.h — game state shared by every screen: player count/life
  * totals, which screen is active, the currently "selected" player (used
- * by the rotary board, where turning the knob must know which player's
+ * by rotary boards, where turning the knob must know which player's
  * life it's adjusting), and the optional extra counters (poison, energy,
  * storm, commander damage) toggled on from the menu screen.
  */

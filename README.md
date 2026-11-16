@@ -1,8 +1,8 @@
-# MTG Life Counter (LVGL, dual-board)
+# MTG Life Counter (LVGL, multi-board)
 
 ![CI](https://github.com/dnasty0525/mtg-life-counter/actions/workflows/ci.yml/badge.svg)
 
-A Magic: The Gathering life counter for your two round 240x240 displays:
+A Magic: The Gathering life counter for three round ESP32 displays:
 
 - **Meshnology ESP32-S3** — this is an Elecrow CrowPanel 1.28" ESP32-S3
   Rotary Display: GC9A01 panel + CST816D capacitive touch + a physical
@@ -10,8 +10,12 @@ A Magic: The Gathering life counter for your two round 240x240 displays:
   all present on the same board. Both touch (tap `+`/`-`) and the knob
   (turn to adjust, click to select/confirm, long-press for dice) work.
 - **DIYmalls ESP32-C3** (ESP32-2424S012C-I-Y(B)) — capacitive touch only, direct tap `+`/`-` buttons
+- **Waveshare ESP32-S3 Knob Touch LCD 1.8"** — 360x360 ST77916 QSPI display,
+  CST816S touch, and rotary encoder (rotation only; no knob push-switch).
+  Boots directly to a one-player counter with large digits; turn the dial to
+  change life. There are no on-screen +/- buttons on this target.
 
-One shared LVGL codebase drives both. Board differences (pins, which input
+One shared LVGL codebase drives all three. Board differences (pins, which input
 device exists) live entirely in `boards/board_config.h` and
 `src/input_driver.*`; the screens in `src/screens/` don't know or care
 which board they're running on.
@@ -30,6 +34,8 @@ mix of these together, see below):
   - **DIYmalls ESP32-C3 round touch display** (ESP32-2424S012C-I-Y(B)) —
     round 240×240 GC9A01 panel + CST816S capacitive touch, no encoder, no
     onboard LED strip.
+  - **Waveshare ESP32-S3 Knob Touch LCD 1.8"** — round 360×360 ST77916
+    QSPI panel, CST816S capacitive touch, and a rotary encoder.
 - A USB-C cable to match (data-capable, not charge-only) to flash and
   power each board.
 - Either a Chrome/Edge browser (for the **web flasher**, no install
@@ -39,7 +45,7 @@ mix of these together, see below):
 Nothing else is required — no soldering, no external LEDs/buttons/wiring.
 Table sync is pure firmware (ESP-NOW over the boards' built-in WiFi
 radios), so no extra hardware is needed for that either. Any combination
-of the two boards can share one table.
+of the supported boards can share one table.
 
 ## Web flashing (no install needed)
 
@@ -50,16 +56,18 @@ flashes the latest tagged release straight from your browser over
 same idea as the Knobby web flasher. Needs Chrome or Edge on desktop; the
 page explains what to do if the board doesn't show up as a port. If you'd
 rather build from source or you're on a browser/OS the web flasher
-doesn't support, see Building below instead.
+doesn't support, see Building below instead. The web flasher currently
+offers the Meshnology and DIYmalls builds; use PlatformIO for the Waveshare.
 
-Every push of a `vX.Y.Z` tag rebuilds and re-uploads both boards'
+Every push of a `vX.Y.Z` tag rebuilds and re-uploads the two web-flasher boards'
 firmware automatically (`.github/workflows/release-firmware.yml`) — the
 web flasher always points at the latest release, so publishing a new
 tagged release is all it takes to update it.
 
 ## Features (v2)
 
-- New-game setup: pick 1–4 players and starting life, then start
+- New-game setup: pick 1–4 players and starting life, then start (Waveshare
+  boots directly into its one-player counter)
 - Adaptive life-counter layout (1 big counter / 2 halves / 3 or 4 around
   the dial) with `+`/`-` per player
 - **Swipe left** on the counter screen to reach the **menu screen**
@@ -84,7 +92,7 @@ tagged release is all it takes to update it.
   - **Multiplayer (Sync)** section: link several of these boards at the
     table so every player's life/poison/energy/commander-damage/storm
     shows the same on every screen. See "Table sync" below.
-- **Long-press a player's life total** (touch, either board) to open
+- **Long-press a player's life total** (touch) to open
   their detail view — poison, energy, and commander damage taken from
   each opponent, each with its own +/- stepper. Only the sections you've
   turned on in the menu show up. Commander damage comes directly off that
@@ -92,17 +100,18 @@ tagged release is all it takes to update it.
   underneath updates live as you adjust it.
 - Small poison/energy badge in the corner of each player's box on the
   main counter screen once those counters have a nonzero value
-- Rotary board: turning the knob adjusts whichever player is "selected"
-  (ring highlight); click cycles selection; long-press opens the dice
-  roller from the counter screen, or starts the game from setup; on the
-  menu screen the knob scrolls the list instead, and long-press goes back
+- Meshnology rotary controls: turning the knob adjusts the selected player;
+  click cycles selection and long-press opens the dice roller or returns
+  from the menu. On the Waveshare, the dial directly adjusts the one
+  player's life total; touch and long-press the life total for the detail
+  view, or swipe left to open the menu. Its encoder has no push switch.
 
 ## Project layout
 
 ```
-platformio.ini          two build envs: meshnology_s3 / diymalls_c3
+platformio.ini          hardware build envs plus the wokwi_s3 simulator target
 boards/board_config.h    per-board pin map + capability flags (BOARD_HAS_TOUCH / BOARD_HAS_ENCODER)
-include/lv_conf.h        LVGL config (240x240, 16-bit color)
+include/lv_conf.h         LVGL config (240/360 square displays, 16-bit color)
 src/display_driver.*     LovyanGFX panel setup + LVGL flush callback
 src/input_driver.*       touch -> LVGL pointer indev; encoder -> semantic events
 src/app_state.*          game state: player life totals, extra counters, selected player, current screen
@@ -124,6 +133,28 @@ docs/                     the web flasher (GitHub Pages) — index.html + a mani
 .github/workflows/        CI (build check on every push) + release firmware builds (on tag push)
 ```
 
+## Wokwi simulation
+
+The `wokwi_s3` PlatformIO environment runs the same LVGL screens and encoder
+driver on Wokwi's ESP32-S3, ILI9341 display, and KY-040 encoder. Install the
+[Wokwi for VS Code extension](https://marketplace.visualstudio.com/items?itemName=wokwi.wokwi-vscode),
+complete its license setup if prompted, then build and start the simulator:
+
+```
+pio run -e wokwi_s3
+```
+
+In VS Code, run **Wokwi: Start Simulator** from the Command Palette. Turn the
+encoder to adjust the focused setup value or selected player's life, click to
+change focus/player, and hold to start the game or open/close the dice roller.
+The simulator target automatically merges the bootloader, partition table,
+and firmware into the image Wokwi needs.
+
+Wokwi's display is rectangular and has no touch input, so it is useful for
+checking layout and encoder flows, but it does not reproduce the round bezel
+or touch gestures of the physical boards. Table sync also requires multiple
+physical radios and is not covered by this single-device simulation.
+
 ## Building
 
 Requires [PlatformIO](https://platformio.org/) (CLI or the VS Code extension).
@@ -137,6 +168,9 @@ pio run -e diymalls_c3 -t upload    # flash it
 
 pio run -e meshnology_s3            # build for the rotary board
 pio run -e meshnology_s3 -t upload  # flash it
+
+pio run -e waveshare_s3             # build for the Waveshare 1.8" knob display
+pio run -e waveshare_s3 -t upload   # flash it
 ```
 
 Dependencies (LVGL, TFT_eSPI, LovyanGFX) are pulled automatically by
@@ -146,7 +180,7 @@ Uses the `huge_app.csv` partition scheme (set in `platformio.ini`) instead
 of each board's default — table sync's WiFi/ESP-NOW stack doesn't fit in
 the default scheme's ~1.25MB app slot (that scheme reserves a second slot
 for OTA updates, which this project doesn't use). Needs a 4MB+ flash chip,
-which both boards have.
+which all three boards have.
 
 ## Critical gotcha: display power-enable pins
 
@@ -163,11 +197,11 @@ in `boards/board_config.h`.
 
 ## Board pinout status
 
-Both boards' pins are filled in and confirmed — DIYmalls C3 from your
-earlier working flash, Meshnology S3 from the
-[Elecrow CrowPanel 1.28" wiki](https://www.elecrow.com/wiki/CrowPanel_1.28inch-HMI_ESP32_Rotary_Display.html)
-(this is an Elecrow CrowPanel board, ESP32-S3R8 with 8MB PSRAM). Nothing
-left to trace with `pin_finder` for either board right now.
+The DIYmalls C3 and Meshnology S3 pinouts are confirmed. The Waveshare
+target follows the [Waveshare ESP32-S3 Knob Touch LCD 1.8" wiki](https://www.waveshare.com/wiki/ESP32-S3-Knob-Touch-LCD-1.8)
+and matching board configuration. Its encoder inputs on GPIO8/GPIO7 are
+sampled every 3 ms; the serial monitor reports their levels and decoded
+transitions once per second to help diagnose hardware input issues.
 
 One thing worth checking once you have it running: `ENC_STEPS_PER_DETENT`
 in `src/input_driver.cpp` assumes a common 4-pulses-per-detent encoder. If
@@ -195,8 +229,8 @@ useful — the hook point above is exactly where to add it.
 
 ## Table sync
 
-Menu screen → **Multiplayer (Sync)** lets several of these boards (either
-board type, any mix of the two) share one game: one device **hosts**, the
+Menu screen → **Multiplayer (Sync)** lets several supported boards (any
+mix of the three) share one game: one device **hosts**, the
 others **join** it, and from then on every linked device shows the same
 life totals, poison/energy, commander damage, storm count, and LED
 turn-color assignments — the host is the single source of truth, and
@@ -217,7 +251,7 @@ back out.
 
 Under the hood this rides on **ESP-NOW**, not classic Bluetooth — see the
 comment at the top of `src/net/sync_protocol.h` for why. No pairing step,
-no phone app; it's device-to-device over the WiFi radio both boards
+no phone app; it's device-to-device over the built-in WiFi radios
 already have.
 
 **Testing with one device:** ESP-NOW needs two physical radios talking to
@@ -285,9 +319,10 @@ git push origin vX.Y.Z
 ```
 
 That's it — pushing the tag triggers `release-firmware.yml`, which builds
-both boards, merges each into one flashable image, and attaches them to
-the GitHub Release for that tag. The web flasher always pulls from the
-*latest* release, so it updates automatically; no separate step needed.
+all three targets, merges each into one flashable image, and attaches them
+to the GitHub Release for that tag. The web flasher uses the Meshnology
+and DIYmalls images from the *latest* release; flash the Waveshare build
+with PlatformIO.
 
 One-time setup for a fresh fork/clone of this repo: GitHub Pages needs to
 be pointed at `docs/` once (Settings → Pages → Source: Deploy from a

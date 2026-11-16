@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "author": "MTG Life Counter",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {
+        "flashSize": "8"
+      }
+    },
+    {
+      "type": "wokwi-ili9341",
+      "id": "display",
+      "top": -25,
+      "left": 310
+    },
+    {
+      "type": "wokwi-ky-040",
+      "id": "encoder",
+      "top": 255,
+      "left": 330
+    }
+  ],
+  "connections": [
+    ["esp:3V3", "display:VCC", "red", []],
+    ["esp:GND.1", "display:GND", "black", []],
+    ["esp:12", "display:SCK", "green", []],
+    ["esp:11", "display:MOSI", "blue", []],
+    ["esp:10", "display:CS", "yellow", []],
+    ["esp:9", "display:D/C", "purple", []],
+    ["esp:3V3", "encoder:VCC", "red", []],
+    ["esp:GND.2", "encoder:GND", "black", []],
+    ["esp:4", "encoder:CLK", "green", []],
+    ["esp:5", "encoder:DT", "blue", []],
+    ["esp:6", "encoder:SW", "yellow", []]
+  ]
+}

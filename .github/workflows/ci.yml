@@ -1,6 +1,6 @@
 name: CI
 
-# Builds both firmware environments on every push/PR so a partition-table
+# Builds all firmware environments on every push/PR so a partition-table
 # or flash-size regression (like the one that briefly broke the C3 build
 # when table sync's WiFi/ESP-NOW stack was added) gets caught here instead
 # of after someone's already flashed a board.
@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [diymalls_c3, meshnology_s3]
+        env: [diymalls_c3, meshnology_s3, waveshare_s3, wokwi_s3]
 
     steps:
       - name: Check out repo

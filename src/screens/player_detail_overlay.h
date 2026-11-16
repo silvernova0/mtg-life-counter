@@ -5,8 +5,8 @@
  * track_commander_damage, set from the menu screen) are shown.
  *
  * Opened by long-pressing a player's life total on the counter screen
- * (touch only — both boards have touch, so this doesn't need an encoder
- * path). Closed with its Close button, which returns to whichever screen
+ * (touch only; all supported boards have touch, so this doesn't need an
+ * encoder path). Closed with its Close button, which returns to whichever screen
  * was active before it opened.
  */
 
