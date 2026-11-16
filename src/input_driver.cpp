@@ -60,7 +60,7 @@ static void encoder_sample_cb(void *) {
     if (fell & 0x02) s_enc_raw_count = s_enc_raw_count + 1;  /* A (GPIO8) */
     s_enc_last_state = raw;
 }
-#endif
+#else
 
 static void IRAM_ATTR encoder_isr() {
     uint8_t a = digitalRead(PIN_ENCODER_A);
@@ -76,6 +76,7 @@ static void IRAM_ATTR encoder_isr() {
     s_enc_raw_count += transition_table[idx & 0x0F];
     s_enc_last_state = state;
 }
+#endif
 
 static input_encoder_cb_t s_enc_cb = nullptr;
 #if BOARD_HAS_ENCODER_BUTTON

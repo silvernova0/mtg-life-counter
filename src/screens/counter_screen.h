@@ -5,8 +5,19 @@
 
 #pragma once
 
+#include <lvgl.h>
+
+/* Duration of the sideways slide between the knob's one-player screens. */
+#define SCREEN_SLIDE_MS 250
+
 void counter_screen_create();
+/* Same, but slides the new screen in with `anim`. LVGL then deletes the
+ * previous screen itself when the slide ends, so tear the previous
+ * screen's module down with its *_release() instead of *_destroy(). */
+void counter_screen_create_anim(lv_scr_load_anim_t anim);
 void counter_screen_destroy();
+/* Tear down without deleting the LVGL screen (see create_anim above). */
+void counter_screen_release();
 
 /* Refreshes all life labels from g_game — call after any adjustment made
  * outside a widget event (e.g. from the encoder handler). */

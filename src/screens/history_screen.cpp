@@ -1,0 +1,151 @@
+#include "history_screen.h"
+#include "counter_screen.h"
+#include "../ui/theme.h"
+#include "../app_state.h"
+#include "../input_driver.h"
+#include "../life_history.h"
+#include <Arduino.h>
+#include <stdio.h>
+
+static lv_obj_t *s_screen = nullptr;
+static lv_obj_t *s_list = nullptr;
+
+#define HISTORY_SCROLL_PX 44   /* one knob click scrolls about one row */
+
+static void go_back() {
+    /* Same create-before-destroy order as every other screen swap. */
+    counter_screen_create_anim(LV_SCR_LOAD_ANIM_MOVE_RIGHT);
+    history_screen_release();
+}
+
+static void screen_gesture_cb(lv_event_t *e) {
+    (void)e;
+    lv_indev_t *indev = lv_indev_get_act();
+    if (!indev) return;
+    if (lv_indev_get_gesture_dir(indev) == LV_DIR_RIGHT) go_back();
+}
+
+static void encoder_handler(input_encoder_event_t evt, int16_t data) {
+    if (g_game.current_screen != SCREEN_HISTORY || !s_list) return;
+    if (evt == INPUT_ENC_TURN) {
+        /* Clockwise moves down the list, toward older entries. */
+        lv_obj_scroll_by(s_list, 0, -data * HISTORY_SCROLL_PX, LV_ANIM_ON);
+    }
+}
+
+static void format_time(char *buf, size_t len, uint32_t ms) {
+    uint32_t s = ms / 1000;
+    if (s >= 3600) {
+        snprintf(buf, len, "%lu:%02lu:%02lu", (unsigned long)(s / 3600),
+                 (unsigned long)((s / 60) % 60), (unsigned long)(s % 60));
+    } else {
+        snprintf(buf, len, "%lu:%02lu", (unsigned long)(s / 60), (unsigned long)(s % 60));
+    }
+}
+
+static lv_obj_t *add_row(const char *time_txt, const char *delta_txt, lv_color_t delta_color,
+                         const char *life_txt) {
+    lv_obj_t *row = lv_obj_create(s_list);
+    lv_obj_remove_style_all(row);
+    lv_obj_set_size(row, LV_PCT(100), 40);
+    lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_add_flag(row, LV_OBJ_FLAG_SCROLL_CHAIN);
+
+    lv_obj_t *t = lv_label_create(row);
+    lv_label_set_text(t, time_txt);
+    lv_obj_set_style_text_font(t, &font_bold_24, 0);
+    lv_obj_set_style_text_color(t, lv_color_hex(0x7c8190), 0);
+    lv_obj_align(t, LV_ALIGN_LEFT_MID, 8, 0);
+
+    lv_obj_t *d = lv_label_create(row);
+    lv_label_set_text(d, delta_txt);
+    lv_obj_set_style_text_font(d, &font_bold_24, 0);
+    lv_obj_set_style_text_color(d, delta_color, 0);
+    lv_obj_align(d, LV_ALIGN_CENTER, 14, 0);
+
+    lv_obj_t *l = lv_label_create(row);
+    lv_label_set_text(l, life_txt);
+    lv_obj_set_style_text_font(l, &font_bold_24, 0);
+    lv_obj_set_style_text_color(l, THEME_LIFE_TEXT, 0);
+    lv_obj_align(l, LV_ALIGN_RIGHT_MID, -8, 0);
+    return row;
+}
+
+void history_screen_create(lv_scr_load_anim_t anim) {
+    g_game.current_screen = SCREEN_HISTORY;
+
+    s_screen = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(s_screen, theme_bg_bottom(), 0);
+    lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_event_cb(s_screen, screen_gesture_cb, LV_EVENT_GESTURE, nullptr);
+
+    /* Thin accent ring echoing the counter screen's life ring. */
+    lv_obj_t *ring = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(ring);
+    lv_obj_set_size(ring, 352, 352);
+    lv_obj_center(ring);
+    lv_obj_set_style_radius(ring, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_border_width(ring, 6, 0);
+    lv_obj_set_style_border_color(ring, theme_accent(), 0);
+    lv_obj_set_style_border_opa(ring, LV_OPA_60, 0);
+    lv_obj_clear_flag(ring, LV_OBJ_FLAG_CLICKABLE);
+
+    lv_obj_t *title = lv_label_create(s_screen);
+    lv_label_set_text(title, "HISTORY");
+    lv_obj_set_style_text_font(title, &font_bold_24, 0);
+    lv_obj_set_style_text_letter_space(title, 4, 0);
+    lv_obj_set_style_text_color(title, theme_accent(), 0);
+    lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 40);
+
+    /* List sits inside the round area: 250 wide is safe across the middle
+     * band, and rows near the top/bottom edges stay readable. */
+    s_list = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_list);
+    lv_obj_set_size(s_list, 250, 230);
+    lv_obj_align(s_list, LV_ALIGN_CENTER, 0, 22);
+    lv_obj_set_flex_flow(s_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_style_pad_row(s_list, 4, 0);
+    lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(s_list, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_flag(s_list, LV_OBJ_FLAG_GESTURE_BUBBLE);
+
+    char time_buf[12], delta_buf[8], life_buf[8];
+    uint8_t n = life_history_count();
+    if (n == 0) {
+        lv_obj_t *empty = lv_label_create(s_list);
+        lv_label_set_text(empty, "No changes yet");
+        lv_obj_set_style_text_font(empty, &font_bold_24, 0);
+        lv_obj_set_style_text_color(empty, lv_color_hex(0x7c8190), 0);
+        lv_obj_set_width(empty, LV_PCT(100));
+        lv_obj_set_style_text_align(empty, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_pad_top(empty, 70, 0);
+    }
+    for (uint8_t i = 0; i < n; i++) {
+        const life_history_entry_t *e = life_history_get(i);
+        if (!e) break;
+        format_time(time_buf, sizeof(time_buf), e->t_ms);
+        snprintf(delta_buf, sizeof(delta_buf), "%+d", e->delta);
+        snprintf(life_buf, sizeof(life_buf), "%d", e->life);
+        add_row(time_buf, delta_buf, e->delta > 0 ? THEME_GAIN : THEME_LOSS, life_buf);
+    }
+    if (n > 0) {
+        snprintf(life_buf, sizeof(life_buf), "%d", life_history_starting_life());
+        add_row("0:00", "start", theme_accent(), life_buf);
+    }
+
+    input_driver_set_encoder_handler(encoder_handler);
+    if (anim == LV_SCR_LOAD_ANIM_NONE) lv_scr_load(s_screen);
+    else lv_scr_load_anim(s_screen, anim, SCREEN_SLIDE_MS, 0, true);
+}
+
+void history_screen_destroy() {
+    if (s_screen) lv_obj_del_async(s_screen);
+    s_screen = nullptr;
+    s_list = nullptr;
+}
+
+void history_screen_release() {
+    s_screen = nullptr;
+    s_list = nullptr;
+}

@@ -47,7 +47,16 @@ static void screen_gesture_cb(lv_event_t *e) {
     (void)e;
     lv_indev_t *indev = lv_indev_get_act();
     if (!indev) return;
-    if (lv_indev_get_gesture_dir(indev) == LV_DIR_RIGHT) {
+    lv_dir_t dir = lv_indev_get_gesture_dir(indev);
+#if defined(BOARD_WAVESHARE_S3)
+    /* On the knob the menu is opened with a swipe up, so swiping back
+     * down closes it too. */
+    if (dir == LV_DIR_BOTTOM) {
+        go_back();
+        return;
+    }
+#endif
+    if (dir == LV_DIR_RIGHT) {
         go_back();
     }
 }

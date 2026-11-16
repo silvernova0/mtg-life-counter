@@ -1,6 +1,7 @@
 #include "app_state.h"
 #include "net/table_sync.h"
 #include "net/sync_protocol.h"
+#include "life_history.h"
 #include <Arduino.h>
 
 game_state_t g_game = {}; /* zero-initialized; app_state_reset_game() fills in real values */
@@ -41,6 +42,7 @@ void app_state_reset_game(uint8_t player_count, int16_t starting_life) {
             g_game.players[i].commander_damage[j] = 0;
         }
     }
+    life_history_clear(starting_life);
 }
 
 void app_state_adjust_life(uint8_t player_idx, int16_t delta) {

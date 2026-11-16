@@ -20,6 +20,8 @@ typedef enum {
     SCREEN_MENU,
     SCREEN_DICE_OVERLAY,
     SCREEN_PLAYER_DETAIL_OVERLAY,
+    SCREEN_HISTORY,
+    SCREEN_THEME_PICKER,
 } app_screen_t;
 
 typedef struct {

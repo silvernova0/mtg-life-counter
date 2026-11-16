@@ -23,7 +23,12 @@
    MEMORY SETTINGS
  *=========================*/
 #define LV_MEM_CUSTOM 0
+#if defined(BOARD_WAVESHARE_S3)
+/* Extra headroom for the one-player screens (life ring, history list). */
+#define LV_MEM_SIZE (96U * 1024U)
+#else
 #define LV_MEM_SIZE (48U * 1024U)
+#endif
 #define LV_MEM_ADR 0
 #define LV_MEMCPY_MEMSET_STD 0
 
