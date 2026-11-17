@@ -22,7 +22,7 @@
 #define THEME_BTN_PLUS      lv_color_hex(0x2f6b3a)
 #define THEME_BTN_MINUS     lv_color_hex(0x6b2f2f)
 
-#define THEME_PRESET_COUNT 9
+#define THEME_PRESET_COUNT 15
 
 /* Life-ring states that stay fixed across themes, so "hurt" and
  * "critical" always read the same no matter which palette is active. */
@@ -35,6 +35,7 @@
 LV_FONT_DECLARE(font_life_110);   /* digits and '-' only */
 LV_FONT_DECLARE(font_bold_24);    /* printable ASCII */
 LV_FONT_DECLARE(font_bold_32);    /* printable ASCII */
+LV_FONT_DECLARE(font_guild_240);  /* guild emblems from the Mana icon font */
 
 /* Current accent color — replaces the old THEME_ACCENT macro. Every
  * screen that used to write THEME_ACCENT now calls theme_accent(). */
@@ -45,6 +46,12 @@ lv_color_t theme_bg_top();      /* inner disc gradient, top */
 lv_color_t theme_bg_bottom();   /* inner disc gradient, bottom + screen bg */
 lv_color_t theme_healthy();     /* life ring/number while life >= 60% */
 lv_color_t theme_track();       /* unfilled part of the life ring */
+/* Guild themes: the healthy life ring blends from theme_healthy() at the
+ * top to this color at the bottom. Returns false for one-color themes. */
+bool theme_ring_second(lv_color_t *out);
+/* UTF-8 glyph (in font_guild_240) shown faintly behind the life total,
+ * or nullptr if the theme has none. */
+const char *theme_watermark();
 
 /* Advances to the next preset (wraps around) and returns its name. */
 const char *theme_cycle();
@@ -60,3 +67,5 @@ void theme_set(uint8_t index, bool persist);
 const char *theme_preset_name(uint8_t index);
 lv_color_t theme_preset_accent(uint8_t index);
 lv_color_t theme_preset_bg_top(uint8_t index);
+/* Guild presets: their two ring colors (false for one-color presets). */
+bool theme_preset_ring2(uint8_t index, lv_color_t *a, lv_color_t *b);

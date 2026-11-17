@@ -17,6 +17,9 @@
 void backlight_init();
 /* Call from loop(): dims after BACKLIGHT_IDLE_DIM_MS without input. */
 void backlight_poll();
+/* Also drops the CPU to 80 MHz when idle on boards with BOARD_CPU_SCALING;
+ * true while it is slowed down. */
+bool backlight_cpu_is_slow();
 /* Any user input (dial turns; touch is picked up from LVGL automatically). */
 void backlight_note_activity();
 

@@ -59,13 +59,44 @@ void backlight_note_activity() {
     }
 }
 
+/* Fast CPU only while something is happening. At 80 MHz the S3 draws
+ * noticeably less, and the APB bus stays at 80 MHz either way, so the
+ * display SPI, backlight PWM and USB keep running unchanged. Input is
+ * acted on in the same loop pass that raises the clock, so the redraw
+ * after a dial click or tap already runs at full speed. */
+#define CPU_FAST_MHZ        240
+#define CPU_IDLE_MHZ        80
+#define CPU_IDLE_AFTER_MS   3000
+
+static bool s_cpu_slow = false;
+
+bool backlight_cpu_is_slow() { return s_cpu_slow; }
+
+static void cpu_scale(uint32_t idle_ms) {
+#if BOARD_CPU_SCALING
+    /* Animations (slides, dice tumble, scrolling) still want full speed. */
+    bool busy = idle_ms < CPU_IDLE_AFTER_MS || lv_anim_count_running() > 0;
+    if (busy && s_cpu_slow) {
+        setCpuFrequencyMhz(CPU_FAST_MHZ);
+        s_cpu_slow = false;
+    } else if (!busy && !s_cpu_slow) {
+        setCpuFrequencyMhz(CPU_IDLE_MHZ);
+        s_cpu_slow = true;
+    }
+#else
+    (void)idle_ms;
+#endif
+}
+
 void backlight_poll() {
-#if BOARD_IDLE_DIM
     /* Touch goes through LVGL, which tracks its own inactivity time. */
     uint32_t touch_idle = lv_disp_get_inactive_time(NULL);
     uint32_t dial_idle = millis() - s_last_activity_ms;
     uint32_t idle = touch_idle < dial_idle ? touch_idle : dial_idle;
 
+    cpu_scale(idle);
+
+#if BOARD_IDLE_DIM
     if (!s_dimmed && idle >= BACKLIGHT_IDLE_DIM_MS) {
         s_dimmed = true;
         apply(s_percent < BACKLIGHT_DIM_PERCENT ? s_percent : BACKLIGHT_DIM_PERCENT);

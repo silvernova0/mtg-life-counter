@@ -175,6 +175,7 @@
      * (table sync), and dim the backlight when idle. */
     #define BOARD_HAS_TABLE_SYNC 0
     #define BOARD_IDLE_DIM       1
+    #define BOARD_CPU_SCALING    1   /* 80 MHz when idle, 240 MHz in use */
     #define BOARD_HAS_TOUCH     1
     #define BOARD_HAS_ENCODER   1
     #define BOARD_HAS_ENCODER_BUTTON 0
@@ -221,6 +222,9 @@
 /* Defaults for optional capabilities a board block above didn't set. */
 #ifndef BOARD_HAS_TABLE_SYNC
     #define BOARD_HAS_TABLE_SYNC 1
+#endif
+#ifndef BOARD_CPU_SCALING
+    #define BOARD_CPU_SCALING 0
 #endif
 #ifndef BOARD_IDLE_DIM
     #define BOARD_IDLE_DIM 0

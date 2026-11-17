@@ -123,6 +123,13 @@ void theme_picker_create(lv_scr_load_anim_t anim) {
         lv_obj_set_style_radius(swatch, LV_RADIUS_CIRCLE, 0);
         lv_obj_set_style_bg_color(swatch, theme_preset_accent(i), 0);
         lv_obj_set_style_bg_opa(swatch, LV_OPA_COVER, 0);
+        lv_color_t ring_a, ring_b;
+        if (theme_preset_ring2(i, &ring_a, &ring_b)) {
+            /* Guilds: show both colors, the same way the life ring blends. */
+            lv_obj_set_style_bg_color(swatch, ring_a, 0);
+            lv_obj_set_style_bg_grad_color(swatch, ring_b, 0);
+            lv_obj_set_style_bg_grad_dir(swatch, LV_GRAD_DIR_VER, 0);
+        }
         lv_obj_clear_flag(swatch, LV_OBJ_FLAG_CLICKABLE);
 
         lv_obj_t *name = lv_label_create(row);

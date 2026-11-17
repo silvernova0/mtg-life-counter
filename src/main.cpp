@@ -108,11 +108,14 @@ void loop() {
     uint32_t now = millis();
     if (now - s_last_heartbeat_ms >= 1000) {
         s_last_heartbeat_ms = now;
-        Serial.printf("[heartbeat] uptime=%lus\n", now / 1000);
+        Serial.printf("[heartbeat] uptime=%lus cpu=%luMHz\n", now / 1000,
+                      (unsigned long)getCpuFrequencyMhz());
     }
 
 #if defined(BOARD_WAVESHARE_S3)
-    delay(1);   /* keep the loop snappy; LVGL paces its own redraws */
+    /* Snappy while in use; when idle (CPU slowed), sleep a little longer
+     * between passes. The dial is sampled by a timer either way. */
+    delay(backlight_cpu_is_slow() ? 5 : 1);
 #else
     delay(5);
 #endif
