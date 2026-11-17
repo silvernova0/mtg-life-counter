@@ -9,13 +9,51 @@
 
 static lv_obj_t *s_screen = nullptr;
 static lv_obj_t *s_list = nullptr;
+static lv_obj_t *s_reset_btn = nullptr;
+static lv_obj_t *s_reset_lbl = nullptr;
+static lv_timer_t *s_confirm_timer = nullptr;
+static bool s_confirming = false;
 
 #define HISTORY_SCROLL_PX 44   /* one knob click scrolls about one row */
+#define RESET_CONFIRM_MS  3000
 
 static void go_back() {
     /* Same create-before-destroy order as every other screen swap. */
     counter_screen_create_anim(LV_SCR_LOAD_ANIM_MOVE_RIGHT);
     history_screen_release();
+}
+
+/* Two-tap reset: first tap arms it (button turns red, "CONFIRM"); a second
+ * tap within RESET_CONFIRM_MS resets life to the starting total and clears
+ * the history. Otherwise it quietly disarms. */
+static void set_confirming(bool on) {
+    s_confirming = on;
+    if (!s_reset_btn) return;
+    lv_label_set_text(s_reset_lbl, on ? "CONFIRM" : "RESET");
+    lv_obj_set_style_bg_color(s_reset_btn, on ? THEME_LIFE_CRITICAL : theme_bg_top(), 0);
+    lv_obj_set_style_border_color(s_reset_btn, on ? THEME_LIFE_CRITICAL : theme_accent(), 0);
+    lv_obj_set_style_text_color(s_reset_lbl, on ? lv_color_white() : theme_accent(), 0);
+}
+
+static void confirm_timeout_cb(lv_timer_t *t) {
+    lv_timer_pause(t);
+    set_confirming(false);
+}
+
+static void reset_btn_cb(lv_event_t *e) {
+    (void)e;
+    if (!s_screen) return;
+    if (!s_confirming) {
+        set_confirming(true);
+        lv_timer_reset(s_confirm_timer);
+        lv_timer_resume(s_confirm_timer);
+        return;
+    }
+    lv_timer_pause(s_confirm_timer);
+    s_confirming = false;
+    /* Also clears the life history and restarts the game clock. */
+    app_state_reset_game(g_game.player_count, g_game.starting_life);
+    go_back();
 }
 
 static void screen_gesture_cb(lv_event_t *e) {
@@ -102,8 +140,8 @@ void history_screen_create(lv_scr_load_anim_t anim) {
      * band, and rows near the top/bottom edges stay readable. */
     s_list = lv_obj_create(s_screen);
     lv_obj_remove_style_all(s_list);
-    lv_obj_set_size(s_list, 250, 230);
-    lv_obj_align(s_list, LV_ALIGN_CENTER, 0, 22);
+    lv_obj_set_size(s_list, 250, 196);
+    lv_obj_align(s_list, LV_ALIGN_CENTER, 0, -4);
     lv_obj_set_flex_flow(s_list, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_style_pad_row(s_list, 4, 0);
     lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
@@ -119,7 +157,7 @@ void history_screen_create(lv_scr_load_anim_t anim) {
         lv_obj_set_style_text_color(empty, lv_color_hex(0x7c8190), 0);
         lv_obj_set_width(empty, LV_PCT(100));
         lv_obj_set_style_text_align(empty, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_style_pad_top(empty, 70, 0);
+        lv_obj_set_style_pad_top(empty, 60, 0);
     }
     for (uint8_t i = 0; i < n; i++) {
         const life_history_entry_t *e = life_history_get(i);
@@ -134,6 +172,29 @@ void history_screen_create(lv_scr_load_anim_t anim) {
         add_row("0:00", "start", theme_accent(), life_buf);
     }
 
+    /* Reset button along the bottom of the round display. */
+    s_reset_btn = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_reset_btn);
+    lv_obj_set_size(s_reset_btn, 160, 44);
+    lv_obj_align(s_reset_btn, LV_ALIGN_CENTER, 0, 124);
+    lv_obj_set_style_radius(s_reset_btn, 22, 0);
+    lv_obj_set_style_bg_opa(s_reset_btn, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(s_reset_btn, 3, 0);
+    lv_obj_set_style_bg_opa(s_reset_btn, LV_OPA_70, LV_STATE_PRESSED);
+    lv_obj_clear_flag(s_reset_btn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(s_reset_btn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(s_reset_btn, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_add_event_cb(s_reset_btn, reset_btn_cb, LV_EVENT_CLICKED, nullptr);
+    s_reset_lbl = lv_label_create(s_reset_btn);
+    lv_obj_set_style_text_font(s_reset_lbl, &font_bold_24, 0);
+    lv_obj_set_style_text_letter_space(s_reset_lbl, 2, 0);
+    lv_obj_center(s_reset_lbl);
+    if (!s_confirm_timer) {
+        s_confirm_timer = lv_timer_create(confirm_timeout_cb, RESET_CONFIRM_MS, nullptr);
+    }
+    lv_timer_pause(s_confirm_timer);
+    set_confirming(false);
+
     input_driver_set_encoder_handler(encoder_handler);
     if (anim == LV_SCR_LOAD_ANIM_NONE) lv_scr_load(s_screen);
     else lv_scr_load_anim(s_screen, anim, SCREEN_SLIDE_MS, 0, true);
@@ -141,11 +202,14 @@ void history_screen_create(lv_scr_load_anim_t anim) {
 
 void history_screen_destroy() {
     if (s_screen) lv_obj_del_async(s_screen);
-    s_screen = nullptr;
-    s_list = nullptr;
+    history_screen_release();
 }
 
 void history_screen_release() {
     s_screen = nullptr;
     s_list = nullptr;
+    s_reset_btn = nullptr;
+    s_reset_lbl = nullptr;
+    s_confirming = false;
+    if (s_confirm_timer) lv_timer_pause(s_confirm_timer);
 }

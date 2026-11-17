@@ -22,6 +22,7 @@ typedef enum {
     SCREEN_PLAYER_DETAIL_OVERLAY,
     SCREEN_HISTORY,
     SCREEN_THEME_PICKER,
+    SCREEN_BRIGHTNESS,
 } app_screen_t;
 
 typedef struct {

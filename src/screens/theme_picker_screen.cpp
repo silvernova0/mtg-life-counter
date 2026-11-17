@@ -4,12 +4,13 @@
 #include "../app_state.h"
 #include "../input_driver.h"
 
-#define ROW_W        220
+#define ROW_W        230
 #define ROW_H        40
-#define ROW_PITCH    46
-#define FIRST_ROW_Y  (-78)   /* row centers, relative to screen center */
+#define ROW_GAP      6
+#define LIST_H       236     /* about five rows visible; the list scrolls */
 
 static lv_obj_t *s_screen = nullptr;
+static lv_obj_t *s_list = nullptr;
 static lv_obj_t *s_ring = nullptr;
 static lv_obj_t *s_title = nullptr;
 static lv_obj_t *s_rows[THEME_PRESET_COUNT];
@@ -40,6 +41,7 @@ static void select(uint8_t idx) {
     s_selected = idx;
     theme_set(idx, false);         /* live preview, not yet saved */
     restyle();
+    if (s_rows[idx]) lv_obj_scroll_to_view(s_rows[idx], LV_ANIM_ON);
 }
 
 static void row_clicked_cb(lv_event_t *e) {
@@ -85,13 +87,24 @@ void theme_picker_create(lv_scr_load_anim_t anim) {
     lv_label_set_text(s_title, "THEME");
     lv_obj_set_style_text_font(s_title, &font_bold_24, 0);
     lv_obj_set_style_text_letter_space(s_title, 4, 0);
-    lv_obj_align(s_title, LV_ALIGN_CENTER, 0, FIRST_ROW_Y - 56);
+    lv_obj_align(s_title, LV_ALIGN_CENTER, 0, -130);
+
+    s_list = lv_obj_create(s_screen);
+    lv_obj_remove_style_all(s_list);
+    lv_obj_set_size(s_list, ROW_W + 8, LIST_H);
+    lv_obj_align(s_list, LV_ALIGN_CENTER, 0, 16);
+    lv_obj_set_flex_flow(s_list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(s_list, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(s_list, ROW_GAP, 0);
+    lv_obj_set_style_pad_ver(s_list, 4, 0);
+    lv_obj_set_scroll_dir(s_list, LV_DIR_VER);
+    lv_obj_set_scrollbar_mode(s_list, LV_SCROLLBAR_MODE_OFF);
+    lv_obj_add_flag(s_list, LV_OBJ_FLAG_GESTURE_BUBBLE);
 
     for (uint8_t i = 0; i < THEME_PRESET_COUNT; i++) {
-        lv_obj_t *row = lv_obj_create(s_screen);
+        lv_obj_t *row = lv_obj_create(s_list);
         lv_obj_remove_style_all(row);
         lv_obj_set_size(row, ROW_W, ROW_H);
-        lv_obj_align(row, LV_ALIGN_CENTER, 0, FIRST_ROW_Y + i * ROW_PITCH);
         lv_obj_set_style_radius(row, ROW_H / 2, 0);
         lv_obj_set_style_bg_color(row, theme_preset_bg_top(i), 0);
         lv_obj_set_style_bg_opa(row, LV_OPA_COVER, 0);
@@ -99,6 +112,7 @@ void theme_picker_create(lv_scr_load_anim_t anim) {
         lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_add_flag(row, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_flag(row, LV_OBJ_FLAG_GESTURE_BUBBLE);
+        lv_obj_add_flag(row, LV_OBJ_FLAG_SCROLL_CHAIN);
         lv_obj_add_event_cb(row, row_clicked_cb, LV_EVENT_CLICKED, (void *)(uintptr_t)i);
         s_rows[i] = row;
 
@@ -119,6 +133,9 @@ void theme_picker_create(lv_scr_load_anim_t anim) {
     }
 
     restyle();
+    /* Start with the current theme in view. */
+    lv_obj_update_layout(s_screen);
+    lv_obj_scroll_to_view(s_rows[s_selected], LV_ANIM_OFF);
     input_driver_set_encoder_handler(encoder_handler);
     if (anim == LV_SCR_LOAD_ANIM_NONE) lv_scr_load(s_screen);
     else lv_scr_load_anim(s_screen, anim, SCREEN_SLIDE_MS, 0, true);
@@ -126,6 +143,7 @@ void theme_picker_create(lv_scr_load_anim_t anim) {
 
 void theme_picker_release() {
     s_screen = nullptr;
+    s_list = nullptr;
     s_ring = nullptr;
     s_title = nullptr;
     for (uint8_t i = 0; i < THEME_PRESET_COUNT; i++) {

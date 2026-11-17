@@ -22,7 +22,7 @@
 #define THEME_BTN_PLUS      lv_color_hex(0x2f6b3a)
 #define THEME_BTN_MINUS     lv_color_hex(0x6b2f2f)
 
-#define THEME_PRESET_COUNT 5
+#define THEME_PRESET_COUNT 9
 
 /* Life-ring states that stay fixed across themes, so "hurt" and
  * "critical" always read the same no matter which palette is active. */

@@ -14,7 +14,12 @@
    COLOR SETTINGS
  *====================*/
 #define LV_COLOR_DEPTH 16
+#if defined(BOARD_WAVESHARE_S3)
+/* Render in the panel's byte order so DMA can send buffers as-is. */
+#define LV_COLOR_16_SWAP 1
+#else
 #define LV_COLOR_16_SWAP 0
+#endif
 #define LV_COLOR_SCREEN_TRANSP 0
 #define LV_COLOR_MIX_ROUND_OFS 0
 #define LV_COLOR_CHROMA_KEY lv_color_hex(0x00ff00)
@@ -30,13 +35,23 @@
 #define LV_MEM_SIZE (48U * 1024U)
 #endif
 #define LV_MEM_ADR 0
+#if defined(BOARD_WAVESHARE_S3)
+#define LV_MEMCPY_MEMSET_STD 1   /* newlib's memcpy/memset are faster */
+#else
 #define LV_MEMCPY_MEMSET_STD 0
+#endif
 
 /*====================
    HAL SETTINGS
  *====================*/
+#if defined(BOARD_WAVESHARE_S3)
+/* Redraw/poll sooner so a dial click reaches the screen faster. */
+#define LV_DISP_DEF_REFR_PERIOD 15
+#define LV_INDEV_DEF_READ_PERIOD 15
+#else
 #define LV_DISP_DEF_REFR_PERIOD 30
 #define LV_INDEV_DEF_READ_PERIOD 30
+#endif
 #define LV_TICK_CUSTOM 1
 #define LV_TICK_CUSTOM_INCLUDE "Arduino.h"
 #define LV_TICK_CUSTOM_SYS_TIME_EXPR (millis())

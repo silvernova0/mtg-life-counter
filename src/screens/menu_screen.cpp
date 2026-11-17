@@ -6,6 +6,7 @@
 #include "../app_state.h"
 #include "../input_driver.h"
 #include "../led_driver.h"
+#include "../backlight.h"
 #include "../led_colors.h"
 #include "../display_driver.h"
 #include "../net/table_sync.h"
@@ -49,9 +50,9 @@ static void screen_gesture_cb(lv_event_t *e) {
     if (!indev) return;
     lv_dir_t dir = lv_indev_get_gesture_dir(indev);
 #if defined(BOARD_WAVESHARE_S3)
-    /* On the knob the menu is opened with a swipe up, so swiping back
-     * down closes it too. */
-    if (dir == LV_DIR_BOTTOM) {
+    /* On the knob the menu is opened with a swipe down, so swiping back
+     * up closes it too. */
+    if (dir == LV_DIR_TOP) {
         go_back();
         return;
     }
@@ -85,8 +86,7 @@ static void random_first_btn_cb(lv_event_t *e) {
 
 static void brightness_slider_cb(lv_event_t *e) {
     lv_obj_t *slider = lv_event_get_target(e);
-    int32_t v = lv_slider_get_value(slider);
-    gfx.setBrightness((uint8_t)v);
+    backlight_set_percent((uint8_t)lv_slider_get_value(slider), true);
 }
 
 static void theme_btn_cb(lv_event_t *e) {
@@ -323,8 +323,8 @@ void menu_screen_create() {
     section_label(s_screen, "BRIGHTNESS");
     lv_obj_t *brightness_slider = lv_slider_create(s_screen);
     lv_obj_set_size(brightness_slider, 170, 14);
-    lv_slider_set_range(brightness_slider, 10, 255);
-    lv_slider_set_value(brightness_slider, 255, LV_ANIM_OFF);
+    lv_slider_set_range(brightness_slider, BACKLIGHT_MIN_PERCENT, 100);
+    lv_slider_set_value(brightness_slider, backlight_get_percent(), LV_ANIM_OFF);
     lv_obj_add_event_cb(brightness_slider, brightness_slider_cb, LV_EVENT_VALUE_CHANGED, nullptr);
 
     section_label(s_screen, "THEME");
@@ -423,6 +423,7 @@ void menu_screen_create() {
     lv_obj_set_style_text_font(storm_reset_lbl, &lv_font_montserrat_12, 0);
     lv_obj_center(storm_reset_lbl);
 
+#if BOARD_HAS_TABLE_SYNC
     section_label(s_screen, "MULTIPLAYER (SYNC)");
     {
         sync_status_t status = table_sync_status();
@@ -491,6 +492,7 @@ void menu_screen_create() {
                 break;
         }
     }
+#endif
 
     action_button(s_screen, "Back", back_btn_cb);
 

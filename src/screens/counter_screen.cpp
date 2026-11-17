@@ -4,6 +4,7 @@
 #include "player_detail_overlay.h"
 #include "history_screen.h"
 #include "theme_picker_screen.h"
+#include "brightness_screen.h"
 #include "../life_history.h"
 #include "../ui/theme.h"
 #include "../app_state.h"
@@ -236,8 +237,8 @@ static void screen_gesture_cb(lv_event_t *e) {
     if (!indev) return;
     lv_dir_t dir = lv_indev_get_gesture_dir(indev);
 #if defined(BOARD_WAVESHARE_S3)
-    /* One-player knob layout: left = history, right = next color theme,
-     * up = menu (new game, dice, settings). */
+    /* One-player knob layout: left = history, right = theme picker,
+     * up = brightness, down = menu (dice, settings). */
     if (hero_mode()) {
         if (dir == LV_DIR_LEFT) {
             history_screen_create(LV_SCR_LOAD_ANIM_MOVE_LEFT);
@@ -246,6 +247,9 @@ static void screen_gesture_cb(lv_event_t *e) {
             theme_picker_create(LV_SCR_LOAD_ANIM_MOVE_RIGHT);
             counter_screen_release();
         } else if (dir == LV_DIR_TOP) {
+            brightness_screen_create(LV_SCR_LOAD_ANIM_MOVE_TOP);
+            counter_screen_release();
+        } else if (dir == LV_DIR_BOTTOM) {
             menu_screen_create();
             counter_screen_destroy();
         }

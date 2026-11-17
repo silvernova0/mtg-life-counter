@@ -9,6 +9,7 @@
 #include "input_driver.h"
 #include "app_state.h"
 #include "led_driver.h"
+#include "backlight.h"
 #include "net/table_sync.h"
 #include "screens/counter_screen.h"
 #include "screens/setup_screen.h"
@@ -50,8 +51,15 @@ void setup() {
     Serial.println("[boot] led_driver_init()...");
     led_driver_init();
 
+    Serial.println("[boot] backlight_init()...");
+    backlight_init();
+
+#if BOARD_HAS_TABLE_SYNC
     Serial.println("[boot] table_sync_init()...");
     table_sync_init();
+#else
+    Serial.println("[boot] table sync disabled on this board (radio stays off)");
+#endif
 
     /* Seed Arduino's random() from the hardware RNG (esp_random() draws
      * from the ESP32's true hardware entropy source) so "random first
@@ -89,7 +97,10 @@ void setup() {
 void loop() {
     lv_timer_handler();
     input_driver_poll();
+#if BOARD_HAS_TABLE_SYNC
     table_sync_poll();
+#endif
+    backlight_poll();
 
     /* Once-a-second heartbeat so a monitor opened late still confirms the
      * firmware is alive and looping, not just silently crashed. */
@@ -99,5 +110,9 @@ void loop() {
         Serial.printf("[heartbeat] uptime=%lus\n", now / 1000);
     }
 
+#if defined(BOARD_WAVESHARE_S3)
+    delay(1);   /* keep the loop snappy; LVGL paces its own redraws */
+#else
     delay(5);
+#endif
 }

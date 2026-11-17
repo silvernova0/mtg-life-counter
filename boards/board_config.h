@@ -171,6 +171,10 @@
 #elif defined(BOARD_WAVESHARE_S3)
 
     #define BOARD_NAME          "Waveshare ESP32-S3 Knob Touch LCD 1.8"
+    /* Battery-powered and used solo: never start the Wi-Fi/ESP-NOW radio
+     * (table sync), and dim the backlight when idle. */
+    #define BOARD_HAS_TABLE_SYNC 0
+    #define BOARD_IDLE_DIM       1
     #define BOARD_HAS_TOUCH     1
     #define BOARD_HAS_ENCODER   1
     #define BOARD_HAS_ENCODER_BUTTON 0
@@ -212,4 +216,12 @@
 
 #else
     #error "No board selected. Choose a supported PlatformIO environment."
+#endif
+
+/* Defaults for optional capabilities a board block above didn't set. */
+#ifndef BOARD_HAS_TABLE_SYNC
+    #define BOARD_HAS_TABLE_SYNC 1
+#endif
+#ifndef BOARD_IDLE_DIM
+    #define BOARD_IDLE_DIM 0
 #endif

@@ -1,6 +1,7 @@
 #include "input_driver.h"
 #include "display_driver.h"
 #include <esp_timer.h>
+#include "backlight.h"
 
 #if BOARD_HAS_TOUCH
 static lv_indev_drv_t touch_indev_drv;
@@ -157,6 +158,7 @@ void input_driver_poll() {
     int32_t detents = (raw - s_enc_last_reported) / ENC_STEPS_PER_DETENT;
     if (detents != 0) {
         s_enc_last_reported += detents * ENC_STEPS_PER_DETENT;
+        backlight_note_activity();
         if (s_enc_cb) s_enc_cb(INPUT_ENC_TURN, (int16_t)detents);
     }
 

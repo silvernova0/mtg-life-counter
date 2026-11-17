@@ -19,6 +19,11 @@ static const theme_preset_t PRESETS[THEME_PRESET_COUNT] = {
     {"Arcane",  0xc08bff, 0x25163a, 0x0a0613, 0xc08bff, 0x2e2340},
     {"Gold",    0xf2c14e, 0x2e2410, 0x0e0a04, 0xf2c14e, 0x3a3020},
     {"Frost",   0xbfe9ff, 0x1c2a33, 0x080c10, 0x9fe6ff, 0x26343d},
+    /* Appended (not inserted) so a saved theme index keeps its meaning. */
+    {"White",   0xf2f2f2, 0x2a2a2e, 0x0c0c0e, 0xffffff, 0x3a3a40},
+    {"Red",     0xff4d5e, 0x3a1016, 0x12050a, 0xff4d5e, 0x4a2028},
+    {"Orange",  0xff8a3d, 0x3a2010, 0x120a05, 0xff8a3d, 0x4a3020},
+    {"Teal",    0x2ed3c6, 0x0f3033, 0x051112, 0x2ed3c6, 0x1a4044},
 };
 
 /* Chosen theme survives power cycles (NVS namespace "mtg", key "theme"). */
