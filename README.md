@@ -1,6 +1,6 @@
 # MTG Life Counter (LVGL, multi-board)
 
-![CI](https://github.com/dnasty0525/mtg-life-counter/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/silvernova0/mtg-life-counter/actions/workflows/ci.yml/badge.svg)
 
 A Magic: The Gathering life counter for three round ESP32 displays:
 
@@ -49,7 +49,7 @@ of the supported boards can share one table.
 
 ## Web flashing (no install needed)
 
-**[dnasty0525.github.io/mtg-life-counter](https://dnasty0525.github.io/mtg-life-counter/)**
+**[silvernova0.github.io/mtg-life-counter](https://silvernova0.github.io/mtg-life-counter/)**
 — pick your board, hit Connect, choose the serial port, hit Install. It
 flashes the latest tagged release straight from your browser over
 [Web Serial](https://developer.chrome.com/docs/capabilities/serial) —
@@ -160,7 +160,7 @@ physical radios and is not covered by this single-device simulation.
 Requires [PlatformIO](https://platformio.org/) (CLI or the VS Code extension).
 
 ```
-git clone https://github.com/dnasty0525/mtg-life-counter.git
+git clone https://github.com/silvernova0/mtg-life-counter.git
 cd mtg-life-counter
 
 pio run -e diymalls_c3              # build for the touch board
