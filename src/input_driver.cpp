@@ -1,4 +1,5 @@
 #include "input_driver.h"
+#include "ui/nav_home.h"
 #include "display_driver.h"
 #include <esp_timer.h>
 #include "backlight.h"
@@ -104,6 +105,9 @@ void input_driver_init() {
     lv_indev_drv_init(&touch_indev_drv);
     touch_indev_drv.type = LV_INDEV_TYPE_POINTER;
     touch_indev_drv.read_cb = touch_read_cb;
+#if defined(BOARD_WAVESHARE_S3)
+    touch_indev_drv.feedback_cb = nav_home_feedback;   /* double-tap = home */
+#endif
     lv_indev_drv_register(&touch_indev_drv);
 #endif
 

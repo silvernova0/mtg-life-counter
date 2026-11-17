@@ -1,6 +1,7 @@
 #include "counters_screen.h"
 #include "counter_screen.h"
 #include "../ui/theme.h"
+#include "../ui/nav_home.h"
 #include "../app_state.h"
 #include "../input_driver.h"
 #include "../life_history.h"
@@ -185,6 +186,7 @@ void counters_screen_create() {
     lv_obj_set_style_bg_color(s_screen, theme_bg_bottom(), 0);
     lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(s_screen, screen_gesture_cb, LV_EVENT_GESTURE, nullptr);
+    nav_home_set(go_back);   /* double-tap background = back to life */
 
     lv_obj_t *ring = lv_obj_create(s_screen);
     lv_obj_remove_style_all(ring);

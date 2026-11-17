@@ -10,6 +10,7 @@
 #include "app_state.h"
 #include "led_driver.h"
 #include "backlight.h"
+#include "battery.h"
 #include "net/table_sync.h"
 #include "screens/counter_screen.h"
 #include "screens/setup_screen.h"
@@ -53,6 +54,7 @@ void setup() {
 
     Serial.println("[boot] backlight_init()...");
     backlight_init();
+    battery_init();
 
 #if BOARD_HAS_TABLE_SYNC
     Serial.println("[boot] table_sync_init()...");
@@ -102,14 +104,16 @@ void loop() {
     table_sync_poll();
 #endif
     backlight_poll();
+    battery_poll();
 
     /* Once-a-second heartbeat so a monitor opened late still confirms the
      * firmware is alive and looping, not just silently crashed. */
     uint32_t now = millis();
     if (now - s_last_heartbeat_ms >= 1000) {
         s_last_heartbeat_ms = now;
-        Serial.printf("[heartbeat] uptime=%lus cpu=%luMHz\n", now / 1000,
-                      (unsigned long)getCpuFrequencyMhz());
+        Serial.printf("[heartbeat] uptime=%lus cpu=%luMHz bat_pin=%umV bat=%umV %u%%\n",
+                      now / 1000, (unsigned long)getCpuFrequencyMhz(),
+                      battery_pin_millivolts(), battery_millivolts(), battery_percent());
     }
 
 #if defined(BOARD_WAVESHARE_S3)

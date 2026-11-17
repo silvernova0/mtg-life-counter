@@ -1,6 +1,7 @@
 #include "brightness_screen.h"
 #include "counter_screen.h"
 #include "../ui/theme.h"
+#include "../ui/nav_home.h"
 #include "../app_state.h"
 #include "../input_driver.h"
 #include "../backlight.h"
@@ -58,6 +59,7 @@ void brightness_screen_create(lv_scr_load_anim_t anim) {
     lv_obj_set_style_bg_color(s_screen, theme_bg_bottom(), 0);
     lv_obj_clear_flag(s_screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(s_screen, screen_gesture_cb, LV_EVENT_GESTURE, nullptr);
+    nav_home_set(go_back);   /* double-tap background = back to life */
 
     /* 270-degree ring with a draggable knob, open at the bottom. */
     s_arc = lv_arc_create(s_screen);
@@ -75,6 +77,11 @@ void brightness_screen_create(lv_scr_load_anim_t anim) {
     lv_obj_set_style_bg_color(s_arc, lv_color_white(), LV_PART_KNOB);
     lv_obj_set_style_pad_all(s_arc, 6, LV_PART_KNOB);
     lv_obj_add_event_cb(s_arc, arc_changed_cb, LV_EVENT_VALUE_CHANGED, nullptr);
+    /* Only the ring itself takes touches, so taps in the middle reach the
+     * screen (double-tap = back to life); a little extra margin keeps the
+     * ring easy to grab. */
+    lv_obj_add_flag(s_arc, LV_OBJ_FLAG_ADV_HITTEST);
+    lv_obj_set_ext_click_area(s_arc, 14);
 
     lv_obj_t *title = lv_label_create(s_screen);
     lv_label_set_text(title, "BRIGHTNESS");

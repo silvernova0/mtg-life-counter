@@ -8,6 +8,7 @@
 #include "counters_screen.h"
 #include "../life_history.h"
 #include "../ui/theme.h"
+#include "../ui/nav_home.h"
 #include "../app_state.h"
 #include "../input_driver.h"
 #include "../led_driver.h"
@@ -516,6 +517,7 @@ void counter_screen_create() {
 
 void counter_screen_create_anim(lv_scr_load_anim_t anim) {
     g_game.current_screen = SCREEN_COUNTER;
+    nav_home_set(nullptr);   /* already home */
     s_built_for_player_count = g_game.player_count;
 
     s_screen = lv_obj_create(NULL);

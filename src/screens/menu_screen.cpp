@@ -4,10 +4,12 @@
 #include "dice_overlay.h"
 #include "dice_screen.h"
 #include "../ui/theme.h"
+#include "../ui/nav_home.h"
 #include "../app_state.h"
 #include "../input_driver.h"
 #include "../led_driver.h"
 #include "../backlight.h"
+#include "../battery.h"
 #include "../led_colors.h"
 #include "../display_driver.h"
 #include "../net/table_sync.h"
@@ -19,6 +21,32 @@ static lv_obj_t *s_random_result_lbl = nullptr;
 static lv_obj_t *s_theme_btn_lbl = nullptr;
 static lv_obj_t *s_storm_lbl = nullptr;
 static lv_obj_t *s_led_color_btn_lbl = nullptr;
+static lv_obj_t *s_bat_bar = nullptr;
+static lv_obj_t *s_bat_lbl = nullptr;
+static lv_timer_t *s_bat_timer = nullptr;
+
+static void refresh_battery() {
+    if (!s_bat_bar || !s_bat_lbl) return;
+    char buf[32];
+    uint16_t mv = battery_millivolts();
+    if (battery_on_usb()) {
+        lv_bar_set_value(s_bat_bar, 100, LV_ANIM_OFF);
+        lv_obj_set_style_bg_color(s_bat_bar, THEME_GAIN, LV_PART_INDICATOR);
+        snprintf(buf, sizeof(buf), "USB power / charging");
+    } else {
+        uint8_t pct = battery_percent();
+        lv_bar_set_value(s_bat_bar, pct, LV_ANIM_OFF);
+        lv_color_t c = pct > 30 ? THEME_GAIN : (pct > 15 ? THEME_LIFE_HURT : THEME_LIFE_CRITICAL);
+        lv_obj_set_style_bg_color(s_bat_bar, c, LV_PART_INDICATOR);
+        snprintf(buf, sizeof(buf), "%u%%  (%u.%02u V)", pct, mv / 1000, (mv % 1000) / 10);
+    }
+    lv_label_set_text(s_bat_lbl, buf);
+}
+
+static void battery_timer_cb(lv_timer_t *t) {
+    (void)t;
+    refresh_battery();
+}
 
 static void go_back() {
     /* Load counter screen first (rebuilds it fresh from current game
@@ -316,11 +344,27 @@ void menu_screen_create() {
     lv_obj_set_style_pad_row(s_screen, 10, 0);
     lv_obj_set_scroll_dir(s_screen, LV_DIR_VER);
     lv_obj_add_event_cb(s_screen, screen_gesture_cb, LV_EVENT_GESTURE, nullptr);
+    nav_home_set(go_back);   /* double-tap background = back to life */
 
     lv_obj_t *title = lv_label_create(s_screen);
     lv_label_set_text(title, "Menu");
     lv_obj_set_style_text_color(title, theme_accent(), 0);
     lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
+
+    if (battery_available()) {
+        section_label(s_screen, "BATTERY");
+        s_bat_bar = lv_bar_create(s_screen);
+        lv_obj_set_size(s_bat_bar, 170, 14);
+        lv_bar_set_range(s_bat_bar, 0, 100);
+        lv_obj_set_style_bg_color(s_bat_bar, THEME_PANEL, LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(s_bat_bar, LV_OPA_COVER, LV_PART_MAIN);
+        s_bat_lbl = lv_label_create(s_screen);
+        lv_obj_set_style_text_color(s_bat_lbl, THEME_LIFE_TEXT, 0);
+        lv_obj_set_style_text_font(s_bat_lbl, &lv_font_montserrat_14, 0);
+        refresh_battery();
+        if (!s_bat_timer) s_bat_timer = lv_timer_create(battery_timer_cb, 2000, nullptr);
+        lv_timer_resume(s_bat_timer);
+    }
 
     /* Only the host is allowed to start a new game while synced — a
      * joiner's g_game is a mirror of the host's, and app_state_reset_game()
@@ -548,4 +592,7 @@ void menu_screen_destroy() {
     s_theme_btn_lbl = nullptr;
     s_storm_lbl = nullptr;
     s_led_color_btn_lbl = nullptr;
+    s_bat_bar = nullptr;
+    s_bat_lbl = nullptr;
+    if (s_bat_timer) lv_timer_pause(s_bat_timer);
 }

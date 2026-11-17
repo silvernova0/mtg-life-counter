@@ -176,6 +176,10 @@
     #define BOARD_HAS_TABLE_SYNC 0
     #define BOARD_IDLE_DIM       1
     #define BOARD_CPU_SCALING    1   /* 80 MHz when idle, 240 MHz in use */
+    #define BOARD_HAS_BATTERY_ADC 1
+    #define PIN_BATTERY_ADC      1   /* ADC1 channel 0, per Waveshare's battery demo */
+    #define BATTERY_DIVIDER_NUM  2   /* cell mV = pin mV * NUM / DEN */
+    #define BATTERY_DIVIDER_DEN  1
     #define BOARD_HAS_TOUCH     1
     #define BOARD_HAS_ENCODER   1
     #define BOARD_HAS_ENCODER_BUTTON 0
@@ -222,6 +226,9 @@
 /* Defaults for optional capabilities a board block above didn't set. */
 #ifndef BOARD_HAS_TABLE_SYNC
     #define BOARD_HAS_TABLE_SYNC 1
+#endif
+#ifndef BOARD_HAS_BATTERY_ADC
+    #define BOARD_HAS_BATTERY_ADC 0
 #endif
 #ifndef BOARD_CPU_SCALING
     #define BOARD_CPU_SCALING 0
