@@ -3,6 +3,7 @@
 #include "net/sync_protocol.h"
 #include "life_history.h"
 #include <Arduino.h>
+#include <Preferences.h>
 
 game_state_t g_game = {}; /* zero-initialized; app_state_reset_game() fills in real values */
 
@@ -38,6 +39,7 @@ void app_state_reset_game(uint8_t player_count, int16_t starting_life) {
         g_game.players[i].active = (i < player_count);
         g_game.players[i].poison = 0;
         g_game.players[i].energy = 0;
+        g_game.players[i].experience = 0;
         for (uint8_t j = 0; j < MAX_PLAYERS; j++) {
             g_game.players[i].commander_damage[j] = 0;
         }
@@ -104,6 +106,50 @@ void app_state_adjust_storm(int16_t delta) {
 void app_state_reset_storm() {
     if (relay_if_joiner(SYNC_ACTION_RESET_STORM, 0, 0, 0)) return;
     g_game.storm_count = 0;
+}
+
+void app_state_adjust_experience(uint8_t player_idx, int16_t delta) {
+    if (player_idx >= g_game.player_count) return;
+    int16_t v = g_game.players[player_idx].experience + delta;
+    if (v < 0) v = 0;
+    g_game.players[player_idx].experience = v;
+}
+
+void app_state_adjust_opponent_commander_damage(uint8_t opp, int16_t delta) {
+    if (opp + 1 >= MAX_PLAYERS) return;
+    int16_t &dmg = g_game.players[0].commander_damage[opp + 1];
+    int16_t old_v = dmg;
+    int16_t new_v = old_v + delta;
+    if (new_v < 0) new_v = 0;
+    dmg = new_v;
+    g_game.players[0].life -= (new_v - old_v);
+}
+
+void app_state_load_counter_prefs() {
+    Preferences prefs;
+    uint8_t f = 0x09;
+    if (!prefs.begin("mtg", true)) {
+        g_game.track_poison = true;
+        g_game.track_commander_damage = true;
+        return;
+    }
+    f = prefs.getUChar("counters", 0x09);   /* default: poison + commander damage */
+    prefs.end();
+    g_game.track_poison = f & 0x01;
+    g_game.track_energy = f & 0x02;
+    g_game.track_storm = f & 0x04;
+    g_game.track_commander_damage = f & 0x08;
+    g_game.track_experience = f & 0x10;
+}
+
+void app_state_save_counter_prefs() {
+    uint8_t f = (g_game.track_poison ? 0x01 : 0) | (g_game.track_energy ? 0x02 : 0) |
+                (g_game.track_storm ? 0x04 : 0) | (g_game.track_commander_damage ? 0x08 : 0) |
+                (g_game.track_experience ? 0x10 : 0);
+    Preferences prefs;
+    if (!prefs.begin("mtg", false)) return;
+    prefs.putUChar("counters", f);
+    prefs.end();
 }
 
 uint8_t app_state_pick_random_player() {

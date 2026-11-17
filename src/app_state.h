@@ -23,6 +23,8 @@ typedef enum {
     SCREEN_HISTORY,
     SCREEN_THEME_PICKER,
     SCREEN_BRIGHTNESS,
+    SCREEN_DICE,
+    SCREEN_COUNTERS,
 } app_screen_t;
 
 typedef struct {
@@ -30,6 +32,7 @@ typedef struct {
     bool active;              /* false once a player is eliminated (life <= 0), still shown greyed out */
     int16_t poison;
     int16_t energy;
+    int16_t experience;
     /* commander_damage[from] = damage this player has taken from
      * players[from]'s commander. Self-index unused. 21+ is commander-kill
      * in the paper rules; we just display the number and let players
@@ -49,6 +52,7 @@ typedef struct {
     bool track_energy;
     bool track_storm;
     bool track_commander_damage;
+    bool track_experience;
 
     /* Storm count is a single shared count for the turn (not per player),
      * matching how the rule actually works — manually reset each turn. */
@@ -75,6 +79,15 @@ void app_state_adjust_energy(uint8_t player_idx, int16_t delta);
  * hit would, and undoing a misclick (delta<0) gives that life back. */
 void app_state_adjust_commander_damage(uint8_t player_idx, uint8_t from_player_idx, int16_t delta);
 void app_state_adjust_storm(int16_t delta);
+void app_state_adjust_experience(uint8_t player_idx, int16_t delta);
+/* One-player knob layout: commander damage player 0 has taken from
+ * opponent `opp` (0..MAX_PLAYERS-2), which also costs that much life.
+ * Stored in players[0].commander_damage[opp + 1]. */
+void app_state_adjust_opponent_commander_damage(uint8_t opp, int16_t delta);
+
+/* Which extra counters are on (track_*) is saved to flash. */
+void app_state_load_counter_prefs();
+void app_state_save_counter_prefs();
 void app_state_reset_storm();
 
 /* Returns a random valid player index in [0, player_count). Uses the

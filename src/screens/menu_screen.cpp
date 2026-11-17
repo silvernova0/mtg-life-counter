@@ -2,6 +2,7 @@
 #include "counter_screen.h"
 #include "setup_screen.h"
 #include "dice_overlay.h"
+#include "dice_screen.h"
 #include "../ui/theme.h"
 #include "../app_state.h"
 #include "../input_driver.h"
@@ -73,7 +74,15 @@ static void new_game_btn_cb(lv_event_t *e) {
     menu_screen_destroy();
 }
 
-static void dice_btn_cb(lv_event_t *e) { (void)e; dice_overlay_open(); }
+static void dice_btn_cb(lv_event_t *e) {
+    (void)e;
+#if defined(BOARD_WAVESHARE_S3)
+    dice_screen_create();
+    menu_screen_destroy();
+#else
+    dice_overlay_open();
+#endif
+}
 
 static void random_first_btn_cb(lv_event_t *e) {
     (void)e;
@@ -151,18 +160,27 @@ static void player_color_btn_cb(lv_event_t *e) {
 static void poison_switch_cb(lv_event_t *e) {
     lv_obj_t *sw = lv_event_get_target(e);
     g_game.track_poison = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    app_state_save_counter_prefs();
 }
 static void energy_switch_cb(lv_event_t *e) {
     lv_obj_t *sw = lv_event_get_target(e);
     g_game.track_energy = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    app_state_save_counter_prefs();
 }
 static void storm_switch_cb(lv_event_t *e) {
     lv_obj_t *sw = lv_event_get_target(e);
     g_game.track_storm = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    app_state_save_counter_prefs();
 }
 static void commander_switch_cb(lv_event_t *e) {
     lv_obj_t *sw = lv_event_get_target(e);
     g_game.track_commander_damage = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    app_state_save_counter_prefs();
+}
+static void experience_switch_cb(lv_event_t *e) {
+    lv_obj_t *sw = lv_event_get_target(e);
+    g_game.track_experience = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    app_state_save_counter_prefs();
 }
 
 static void refresh_storm_label() {
@@ -380,7 +398,9 @@ void menu_screen_create() {
     labeled_switch(s_screen, "Energy", g_game.track_energy, energy_switch_cb);
     labeled_switch(s_screen, "Storm", g_game.track_storm, storm_switch_cb);
     labeled_switch(s_screen, "Commander Dmg", g_game.track_commander_damage, commander_switch_cb);
+    labeled_switch(s_screen, "Experience", g_game.track_experience, experience_switch_cb);
 
+#if !defined(BOARD_WAVESHARE_S3)
     /* Storm is a single shared count (not per player), so it's managed
      * right here rather than on the counter screen. */
     lv_obj_t *storm_row = lv_obj_create(s_screen);
@@ -422,6 +442,13 @@ void menu_screen_create() {
     lv_label_set_text(storm_reset_lbl, "Reset Storm");
     lv_obj_set_style_text_font(storm_reset_lbl, &lv_font_montserrat_12, 0);
     lv_obj_center(storm_reset_lbl);
+#else
+    /* On the knob, tap the life total to adjust whichever are on. */
+    lv_obj_t *hint = lv_label_create(s_screen);
+    lv_label_set_text(hint, "Tap life to use them");
+    lv_obj_set_style_text_color(hint, theme_accent(), 0);
+    lv_obj_set_style_text_font(hint, &lv_font_montserrat_12, 0);
+#endif
 
 #if BOARD_HAS_TABLE_SYNC
     section_label(s_screen, "MULTIPLAYER (SYNC)");

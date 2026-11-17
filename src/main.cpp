@@ -66,6 +66,7 @@ void setup() {
      * player" isn't the same pick every boot. */
     randomSeed(esp_random());
 
+    app_state_load_counter_prefs();
     Serial.println("[boot] app_state_reset_game()...");
 #if defined(BOARD_WAVESHARE_S3)
     app_state_reset_game(1, DEFAULT_START_LIFE);

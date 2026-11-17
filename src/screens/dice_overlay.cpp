@@ -1,6 +1,7 @@
 #include "dice_overlay.h"
 #include "../ui/theme.h"
 #include "../app_state.h"
+#include <Arduino.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -30,9 +31,9 @@ static void spin_anim_exec_cb(void *var, int32_t v) {
     (void)var;
     char buf[4];
     if (v < 100) {
-        snprintf(buf, sizeof(buf), "%d", (rand() % 20) + 1);
+        snprintf(buf, sizeof(buf), "%d", (int)random(1, 21));
     } else {
-        int result = (rand() % 20) + 1;
+        int result = (int)random(1, 21);
         snprintf(buf, sizeof(buf), "%d", result);
         s_rolling = false;
     }
@@ -45,6 +46,9 @@ void dice_overlay_open() {
     g_game.current_screen = SCREEN_DICE_OVERLAY;
 
     s_overlay = lv_obj_create(lv_scr_act());
+    /* Floating: the menu screen is a scrolling flex column, which would
+     * otherwise lay the overlay out after its last button, off screen. */
+    lv_obj_add_flag(s_overlay, LV_OBJ_FLAG_FLOATING);
     lv_obj_set_size(s_overlay, 240, 240);
     lv_obj_center(s_overlay);
     lv_obj_set_style_bg_color(s_overlay, THEME_BG, 0);
